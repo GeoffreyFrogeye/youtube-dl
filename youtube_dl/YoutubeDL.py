@@ -13,6 +13,7 @@ import io
 import itertools
 import json
 import locale
+import multiprocessing
 import operator
 import os
 import platform
@@ -1855,6 +1856,12 @@ class YoutubeDL(object):
                         self.to_stdout('[debug] Invoking downloader on %r' % info.get('url'))
                     return fd.download(name, info)
 
+                def parallel_dl(name, info):
+                    os.mkfifo(name)
+                    p = multiprocessing.Process(target=dl, args=(name, info))
+                    p.start()
+                    return True
+
                 if info_dict.get('requested_formats') is not None:
                     downloaded = []
                     success = True
@@ -1908,7 +1915,7 @@ class YoutubeDL(object):
                             if not ensure_dir_exists(fname):
                                 return
                             downloaded.append(fname)
-                            partial_success = dl(fname, new_info)
+                            partial_success = parallel_dl(fname, new_info)
                             success = success and partial_success
                         info_dict['__postprocessors'] = postprocessors
                         info_dict['__files_to_merge'] = downloaded
